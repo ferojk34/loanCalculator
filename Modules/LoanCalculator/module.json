@@ -1,0 +1,13 @@
+{
+    "name": "LoanCalculator",
+    "alias": "loancalculator",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\LoanCalculator\\Providers\\LoanCalculatorServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}
