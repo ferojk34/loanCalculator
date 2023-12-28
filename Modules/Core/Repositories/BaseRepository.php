@@ -3,15 +3,10 @@
 namespace Modules\Core\Repositories;
 
 use Exception;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use Modules\Core\Facades\CoreCache;
 use Modules\Core\Traits\Filterable;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
-use Modules\Core\Exceptions\DeleteUnauthorized;
-
 class BaseRepository
 {
     use Filterable;
@@ -297,80 +292,5 @@ class BaseRepository
         DB::commit();
 
         return $deleted;
-    }
-
-    public function updateStatus(object $request, int $id, ?callable $callback = null): object
-    {
-        DB::beginTransaction();
-        Event::dispatch("{$this->model_key}.update-status.before");
-
-        try
-        {
-            $data = $request->validate([
-                "status" => "sometimes|boolean"
-            ]);
-
-            $updated = $this->model->findOrFail($id);
-            $data["status"] = $data["status"] ?? !$updated->status;
-            $data["status"] = (bool) $data["status"];
-
-            $updated->fill($data);
-            $updated->save();
-
-            if ($callback) {
-                $callback($updated);
-            }
-        }
-        catch (Exception $exception)
-        {
-            DB::rollBack();
-            throw $exception;
-        }
-
-        Event::dispatch("{$this->model_key}.update-status.after", $updated);
-        DB::commit();
-
-        return $updated;
-    }
-
-    public function storeScopeImage(object $request, ?string $folder = null, ?string $delete_url = null): string
-    {
-        try
-        {
-            // Store File
-            $key = (string) Str::uuid();
-            $folder = $folder ?? "default";
-            $file_path = $request->storeAs("images/{$folder}/{$key}", $this->generateFileName($request));
-
-            // Delete old file if requested
-            if ( $delete_url !== null ) {
-                Storage::delete($delete_url);
-            }
-        }
-        catch (Exception $exception)
-        {
-            throw $exception;
-        }
-
-        return $file_path;
-    }
-
-    public function generateFileName(object $file): string
-    {
-        try
-        {
-            $original_filename = $file->getClientOriginalName();
-            $name = pathinfo($original_filename, PATHINFO_FILENAME);
-            $extension = pathinfo($original_filename, PATHINFO_EXTENSION);
-
-            $filename_slug = Str::slug($name);
-            $filename = "{$filename_slug}.{$extension}";
-        }
-        catch (Exception $exception)
-        {
-            throw $exception;
-        }
-
-        return (string) $filename;
     }
 }

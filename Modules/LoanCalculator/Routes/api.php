@@ -1,6 +1,7 @@
 <?php
 
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Modules\LoanCalculator\Http\Controllers\LoanCalculateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +14,11 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::middleware('auth:api')->get('/loancalculator', function (Request $request) {
-    return $request->user();
+Route::group(
+    [
+        "as" => "loan.",
+        "prefix" => "public/loan",
+        "middleware" => ["api"],
+    ], function () {
+    Route::post("calculate-loan", [LoanCalculateController::class, "calculateLoan"])->name('calculate');
 });
