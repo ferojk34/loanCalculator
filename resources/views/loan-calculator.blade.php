@@ -157,12 +157,12 @@
     // Handle form submission
     $('#loanForm').submit(function(event) {
       event.preventDefault();
+      $('.error-message').text('');
+      $('#errorMessage').text('');
       $("#repayment-amortization-schedule-section").hide();
       $("#amortiation-schedule-section").hide();
-      // Show loading indicator
       $('#loadingIndicator').show();
 
-      // Your AJAX call to Laravel API
       $.ajax({
         url: 'http://127.0.0.1:8000/api/public/loan/calculate-loan',
         method: 'POST',
@@ -171,9 +171,8 @@
             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         },
         success: function(response) {
-          // Hide loading indicator
           $('#loadingIndicator').hide();
-          // Display response in table format
+
           displayResponse(response.payload);
           var loanAmountValue = $("#loanAmount").val();
           var annualInterestRate = $("#interestRate").val();
@@ -190,17 +189,19 @@
           $("#repayment-interest-rate").text(annualInterestRate);
           $("#repayment-loan-term").text(loanTerm);
           $("#repayment-repayment-amount").text(monthlyExtraPayment);
-          $("#repayment-effective-interest-rate").text(effective_interest_rate);
+          $("#repayment-effective-interest-rate").text(response.payload.effective_interest_rate);
 
         },
         error: function(error) {
-          if (error.status === 422) {
-                var errors = error.responseJSON.message;
-                $.each(errors, function (field, errorMessage) {
+          switch (error.status) {
+            case 422:
+              var errors = error.responseJSON.message;
+              $.each(errors, function (field, errorMessage) {
                   $('#' + field + 'Error').text(errorMessage[0]);
-                });
-          } else {
-            $('#errorMessage').text('Something went wrong. Please try again later !');
+              });
+              break;
+            default:
+              $('#errorMessage').text('Something went wrong. Please try again later!');
           }
           $('#loadingIndicator').hide();
         }
@@ -231,13 +232,12 @@
                 </tr>`;
       });
 
-      $('#repayment-amortization-schedule').html(html);
-      $('#amortization-schedule').html(html);
-      if (response.effective_interest_rate !== "") {
-        $('#repayment-amortization-schedule-section').show();
-      } else {
-        $('#amortiation-schedule-section').show();
-      }
+      var scheduleTarget = response.effective_interest_rate !== ""
+        ? "#repayment-amortization-schedule-section"
+        : "#amortiation-schedule-section";
+      $("#repayment-amortization-schedule, #amortization-schedule").html(html);
+      $(scheduleTarget).show();
+
     }
   });
 </script>

@@ -20,12 +20,14 @@ class LoanCalculateRepository extends BaseRepository
 
     public function calculateLoan(Request $request): array
     {
+        DB::beginTransaction();
+
         try {
             $this->rules = [
-                'loanAmount' => 'required|numeric|min:1|max:1000000|regex:/^\d+$/',
-                'annualInterestRate' => 'required|numeric|min:1|max:100|regex:/^\d+$/',
-                'loanTermInYears' => 'required|numeric|min:1|max:15|regex:/^\d+$/',
-                'additionalPayment' => 'sometimes|nullable|numeric|min:1|max:100000|regex:/^\d+$/',
+                "loanAmount" => "required|numeric|min:1|max:1000000|regex:/^\d+$/",
+                "annualInterestRate" => "required|numeric|min:1|max:100|regex:/^\d+$/",
+                "loanTermInYears" => "required|numeric|min:1|max:15|regex:/^\d+$/",
+                "additionalPayment" => "sometimes|nullable|numeric|min:1|max:100000|regex:/^\d+$/",
             ];
             $this->validateData($request);
 
@@ -36,15 +38,17 @@ class LoanCalculateRepository extends BaseRepository
                 additionalPayment: $request->additionalPayment
             );
 
-            if ($request->additionalPayment) {
-                DB::table("extra_repayment_schedules")->insert($amortizationSchedule["schedule"]);
-            } else {
-                DB::table("loan_amortization_schedules")->insert($amortizationSchedule["schedule"]);
-            }
+            $tableName = $request->additionalPayment
+                ? "extra_repayment_schedules"
+                : "loan_amortization_schedules";
+            DB::table($tableName)->insert($amortizationSchedule["schedule"]);
+
         } catch (Exception $exception) {
+            DB::rollback();
             throw $exception;
         }
 
+        DB::commit();
         return $amortizationSchedule;
     }
 
@@ -54,11 +58,10 @@ class LoanCalculateRepository extends BaseRepository
         int $loanTermInYears,
         ?float $additionalPayment = 0
     ): array {
-
         try {
             $monthlyInterestRate = ($annualInterestRate / 12) / 100;
             $numberOfMonths = $loanTermInYears * 12;
-
+            $userExtraPayment = $additionalPayment;
             $schedule = [];
             $remainingBalance = $loanAmount;
             $totalInterestPaid = 0;
@@ -72,19 +75,17 @@ class LoanCalculateRepository extends BaseRepository
                    $principalComponent  = $remainingBalance;
                    $additionalPayment = 0;
                    $totalPrincipal = $principalComponent;
-               }
-               elseif (($principalComponent + $additionalPayment) > $remainingBalance) {
+                   $monthlyPayment = $interestComponent + $remainingBalance;
+               } elseif (($principalComponent + $additionalPayment) > $remainingBalance) {
                     $additionalPayment = $remainingBalance - $principalComponent;
-                    // $principalComponent +=$additionalPayment;
+                    $totalPrincipal = $principalComponent + $additionalPayment;
+               } else {
                     $totalPrincipal = $principalComponent + $additionalPayment;
                }
-               else {
-                    $totalPrincipal = $principalComponent + $additionalPayment;
-               }
-                $remainingBalance -= $totalPrincipal;
 
+                $remainingBalance -= $totalPrincipal;
                 $totalInterestPaid += $interestComponent;
-                // Calculate the effective interest rate
+
                 $monthlyLoanSchedule = [
                     "month" => $i,
                     "opening_balance" => $openingBalance,
@@ -94,12 +95,12 @@ class LoanCalculateRepository extends BaseRepository
                     "closing_balance" => $remainingBalance,
                 ];
 
-                if ($additionalPayment) {
+                if ($userExtraPayment) {
                     $monthlyLoanSchedule["extra_payment"] = $additionalPayment;
                     $monthlyLoanSchedule["remaining_loan_term"] = $numberOfMonths - $i;
                 }
-
                 $schedule[] = $monthlyLoanSchedule;
+
                  // if the remaining balance becomes zero
                 if ($remainingBalance <= 0) {
                     break;
@@ -107,7 +108,7 @@ class LoanCalculateRepository extends BaseRepository
             }
 
             $data["schedule"] = $schedule;
-            if ($additionalPayment) {
+            if ($userExtraPayment) {
                 $data["effective_interest_rate"] = ($totalInterestPaid / $loanAmount) * 100;
             }
 

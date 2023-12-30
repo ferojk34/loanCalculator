@@ -20,25 +20,21 @@ class LoanCalculateController extends BaseController
         $this->repository = $repository;
     }
 
-    public function resource(array $calculatedResults): JsonResource
+    public function resource(object $calculatedResults): JsonResource
     {
-        return new LoanCalculationResource((object)$calculatedResults);
+        return new LoanCalculationResource($calculatedResults);
     }
 
     public function calculateLoan(Request $request): JsonResponse
     {
-        DB::beginTransaction();
-
         try {
             $calculatedResults = $this->repository->calculateLoan($request);
         } catch (Exception $exception) {
-            DB::rollback();
             return $this->handleException($exception);
         }
 
-        DB::commit();
         return $this->successResponse(
-            payload: $this->resource($calculatedResults),
+            payload: $this->resource((object)$calculatedResults),
             message: "fetch-success",
         );
     }

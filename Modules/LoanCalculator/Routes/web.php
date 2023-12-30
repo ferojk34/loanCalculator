@@ -11,6 +11,3 @@
 |
 */
 
-Route::prefix('loancalculator')->group(function() {
-    Route::get('/', 'LoanCalculatorController@index');
-});
