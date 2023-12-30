@@ -21,7 +21,14 @@ class LoanCalculateRepository extends BaseRepository
     public function calculateLoan(Request $request): array
     {
         try {
-            // run validation here.. 422
+            $this->rules = [
+                'loanAmount' => 'required|numeric|min:1|max:1000000|regex:/^\d+$/',
+                'annualInterestRate' => 'required|numeric|min:1|max:100|regex:/^\d+$/',
+                'loanTermInYears' => 'required|numeric|min:1|max:15|regex:/^\d+$/',
+                'additionalPayment' => 'sometimes|nullable|numeric|min:1|max:100000|regex:/^\d+$/',
+            ];
+            $this->validateData($request);
+
             $amortizationSchedule = $this->generateAmortizationSchedule(
                 loanAmount: $request->loanAmount,
                 annualInterestRate: $request->annualInterestRate,

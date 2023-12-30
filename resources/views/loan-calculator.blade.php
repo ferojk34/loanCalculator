@@ -10,6 +10,12 @@
       background-color: #f8f9fa;
     }
 
+    #errorMessage {
+            color: red;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
     .container {
       background-color: #ffffff;
       box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
@@ -37,25 +43,35 @@
     #responseTable {
       margin-top: 20px;
     }
+
+    .error-message {
+            color: red;
+            font-size: 14px;
+    }
   </style>
 </head>
 <body>
 
 <div class="container mt-5">
   <h2 class="text-center mb-4">Loan Calculator</h2>
+
+  <div id="errorMessage"></div>
   <form id="loanForm">
     @csrf
     <div class="form-group">
       <label for="loanAmount">Loan Amount</label>
-      <input type="number" class="form-control" id="loanAmount" name="loanAmount" required>
+      <input type="number" class="form-control" id="loanAmount" name="loanAmount">
+      <span class="error-message" id="loanAmountError"></span>
     </div>
     <div class="form-group">
-      <label for="loanTerm">Loan Term (1-20 years)</label>
+      <label for="loanTerm">Loan Term (1-15 years)</label>
       <input type="number" class="form-control" id="loanTerm" name="loanTermInYears" min="1" max="20" required>
+      <span class="error-message" id="loanTermError"></span>
     </div>
     <div class="form-group">
       <label for="interestRate">Interest Rate (1-100%)</label>
       <input type="number" class="form-control" id="interestRate" name="annualInterestRate" min="1" max="100" required>
+      <span class="error-message" id="interestRateError"></span>
     </div>
     <div class="form-check">
       <input type="checkbox" class="form-check-input" id="extraPaymentCheckbox">
@@ -64,6 +80,7 @@
     <div class="form-group" id="extraPaymentField" style="display: none;">
       <label for="monthlyExtraPayment">Enter Your Monthly Extra Payment</label>
       <input type="number" class="form-control" id="monthlyExtraPayment" name="additionalPayment">
+      <span class="error-message" id="additionalPaymentError"></span>
     </div>
     <div id="loadingIndicator">Loading...</div>
     <button type="submit" class="btn btn-primary mt-2">Submit</button>
@@ -177,8 +194,14 @@
 
         },
         error: function(error) {
-          console.error('API call error:', error);
-          // Hide loading indicator in case of error
+          if (error.status === 422) {
+                var errors = error.responseJSON.message;
+                $.each(errors, function (field, errorMessage) {
+                  $('#' + field + 'Error').text(errorMessage[0]);
+                });
+          } else {
+            $('#errorMessage').text('Something went wrong. Please try again later !');
+          }
           $('#loadingIndicator').hide();
         }
       });
