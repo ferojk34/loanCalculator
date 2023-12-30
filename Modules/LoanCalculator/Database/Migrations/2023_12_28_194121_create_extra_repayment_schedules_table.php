@@ -10,15 +10,14 @@ return new class extends Migration
     {
         Schema::create("extra_repayment_schedules", function (Blueprint $table) {
             $table->id();
-
-            $table->unsignedBigInteger("amortization_schedule_id");
-            $table->foreign("amortization_schedule_id")
-                ->references("id")
-                ->on("loan_amortization_schedules")
-                ->onDelete("cascade");
-
+            $table->unsignedInteger("month");
+            $table->decimal("opening_balance", 10, 2);
             $table->decimal("monthly_payment", 10, 2);
+            $table->decimal("principal_component", 10, 2);
+            $table->decimal("interest_component", 10, 2);
             $table->decimal("closing_balance", 10, 2);
+            $table->decimal("extra_payment", 10, 2);
+            $table->unsignedInteger("remaining_loan_term");
             $table->timestamps();
         });
     }
