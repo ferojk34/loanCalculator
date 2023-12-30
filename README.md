@@ -50,15 +50,24 @@ This is a Laravel project built with version 9.19.
 4. **Environment Setup:**
 
     - Copy the `.env.example` file to `.env`:
-
-        ```bash
+	
+	  ```bash
         cp .env.example .env
         ```
 
-    - Generate the application key:
+   - Generate the application key:
 
         ```bash
         php artisan key:generate
+        ```
+		
+	- Copy the `.env.example` file to `.env.testing`:
+
+        ```bash
+        cp .env.example .env.testing
+		Make changes in env.testing:
+         APP_ENV=testing
+		 DB_DATABASE=loan_calculator_testing
         ```
 
 5. **Configuration:**
@@ -72,7 +81,13 @@ This is a Laravel project built with version 9.19.
         ```bash
         php artisan migrate
         ```
+		
+		  Generate testing tables using below the command:
 
+        ```bash
+     php artisan migration --env=testing
+        ```
+		
     - Serve the application:
 
         ```bash
@@ -80,4 +95,13 @@ This is a Laravel project built with version 9.19.
         ```
 
         Your application should now be running at `http://localhost:8000`.
+
+7. **Run Unit Testing:**
+
+    - Run the below command on terminal to perform unit testing:
+
+       ```bash
+         php artisan test Modules\LoanCalculator\Tests\Unit\LoanCalculatorTest.php
+        ```
+		
 
